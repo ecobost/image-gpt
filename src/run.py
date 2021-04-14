@@ -14,8 +14,8 @@ from scipy.special import softmax
 from tensorflow.contrib.training import HParams
 from tqdm import tqdm
 
-from model import model
-from utils import iter_data, count_parameters
+from .model import model
+from .utils import iter_data, count_parameters
 
 
 def parse_arguments():
@@ -145,7 +145,7 @@ def sample(sess, X, gen_logits, n_sub_batch, n_gpu, n_px, n_vocab, clusters, sav
             for k in range(n_sub_batch):
                 c = np.random.choice(n_vocab, p=p[k])  # choose based on probas
                 samples[j * n_sub_batch + k, i] = c
-    
+
     # dequantize
     samples = [np.reshape(np.rint(127.5 * (clusters[s] + 1.0)), [32, 32, 3]).astype(np.uint8) for s in samples]
 
@@ -193,6 +193,92 @@ def main(args):
                 os.makedirs(args.save_dir)
             clusters = np.load(args.color_cluster_path)
             sample(sess, X, gen_logits, args.n_sub_batch, args.n_gpu, args.n_px, args.n_vocab, clusters, args.save_dir)
+
+
+
+
+# This three functions are taken from https://colab.research.google.com/github/apeguero1/image-gpt/blob/master/Image_GPT_Sample_with_Conditioning.ipynb#scrollTo=sriUPI4YANqM
+#numpy implementation of functions in src/utils which convert pixels of image to nearest color cluster.
+def normalize_img(img):
+    return img/127.5 - 1
+
+def squared_euclidean_distance_np(a,b):
+    b = b.T
+    a2 = np.sum(np.square(a),axis=1)
+    b2 = np.sum(np.square(b),axis=0)
+    ab = np.matmul(a,b)
+    d = a2[:,None] - 2*ab + b2[None,:]
+    return d
+
+def color_quantize_np(x, clusters):
+    x = x.reshape(-1, 3)
+    d = squared_euclidean_distance_np(x, clusters)
+    return np.argmin(d,axis=1)
+
+
+
+def get_intermediate_repr(data_path='/root/data/square_32_images.npy',
+                          color_cluster_path='/root/downloads/kmeans_centers.npy',
+                          seed=42, n_sub_batch=8, n_px=32, n_embd=512, n_head=8,
+                          n_layer=24, n_vocab=512, bert=True, bert_mask_prob=0.15,
+                          clf=True, ckpt_path='/root/downloads/model.ckpt-1000000'):
+    """ Get the intermediate representation of some images. 
+    
+    Arguments:
+        Same parameters that would be send via args. In here, I'm using the default for 
+        the small model.
+    """
+    # Create dataset (as expected by the transformer)
+    print('Loading and processing data')
+    images = np.load(data_path)  # uint8 (num_images x 64 x 64 x 3)
+    norm_images = normalize_img(images)
+    clusters = np.load(color_cluster_path)
+    quant_images = np.stack([color_quantize_np(im, clusters)
+                             for im in norm_images])  # num_images x 64*64
+
+    #FROM HERE ON BASED ON main()
+    print('Creating model')
+    set_seed(seed)
+    n_batch = n_sub_batch
+
+    # Create placeholder for the input
+    X = tf.placeholder(tf.int32, [n_batch, n_px * n_px])
+
+    # Create hparams (send to model)
+    hparams = HParams(n_ctx=n_px * n_px, n_embd=n_embd, n_head=n_head, n_layer=n_layer,
+                      n_vocab=n_vocab, bert=bert, bert_mask_prob=bert_mask_prob, clf=clf)
+
+    # Create model
+    with tf.device("/gpu:0"):
+        results = model(hparams, X, Y=tf.placeholder(tf.float32, [n_batch, 10]))
+        trainable_params = tf.trainable_variables()
+        h = results['h']  # batch_size (8) x num_pixels (1024=32*32) x features (512)
+
+    # Run model
+    print('Restoring checkpoint')
+    saver = tf.train.Saver(
+        var_list=[tp for tp in trainable_params if not 'clf' in tp.name])
+    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True,
+                                          log_device_placement=False)) as sess:
+        sess.run(tf.global_variables_initializer())
+
+        # Restore checkpoint
+        print('Restoring checkpoint')
+        saver.restore(sess, ckpt_path)
+
+        # Run
+        print('Running model')
+        hs = []
+        for xmb in iter_data(quant_images, n_batch=n_batch, truncate=True, verbose=True):
+            hs.append(sess.run(h, {X: xmb}))
+        remaining_images = len(quant_images) % n_batch
+        if remaining_images > 0:
+            hs.append(sess.run(h, {X: quant_images[-n_batch:]})[-remaining_images:])
+        hs = np.concatenate(hs)
+
+    # Save hs
+    print('Saving')
+    np.save('/root/data/iGPT_features.npy', hs)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,45 @@
+To run stuff
+you have to download the model and color cluster
+python download.py --model s --ckpt 1000000 --clusters
+
+then enter a docker
+docker-compose run bash
+and in a python terminal
+
+
+In [1]: from src import run
+r
+In [2]: run.get_intermediate_repr()
+Loading and processing data
+Creating model
+WARNING:tensorflow:From /usr/local/lib/python3.6/dist-packages/tensorflow/python/framework/op_def_library.py:263: colocate_with (from tensorflow.python.framework.ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Colocations handled automatically by placer.
+Restoring checkpoint
+2021-04-01 04:25:20.740923: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+2021-04-01 04:25:20.836700: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2021-04-01 04:25:20.837058: I tensorflow/compiler/xla/service/service.cc:150] XLA service 0x2cc0020 executing computations on platform CUDA. Devices:
+2021-04-01 04:25:20.837073: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (0): GeForce RTX 2070, Compute Capability 7.5
+2021-04-01 04:25:20.838416: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 3600000000 Hz
+2021-04-01 04:25:20.838753: I tensorflow/compiler/xla/service/service.cc:150] XLA service 0x2eb8380 executing computations on platform Host. Devices:
+2021-04-01 04:25:20.838765: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (0): <undefined>, <undefined>
+2021-04-01 04:25:20.838835: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1433] Found device 0 with properties: 
+name: GeForce RTX 2070 major: 7 minor: 5 memoryClockRate(GHz): 1.62
+pciBusID: 0000:01:00.0
+totalMemory: 7.79GiB freeMemory: 6.49GiB
+2021-04-01 04:25:20.838845: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1512] Adding visible gpu devices: 0
+2021-04-01 04:25:20.839188: I tensorflow/core/common_runtime/gpu/gpu_device.cc:984] Device interconnect StreamExecutor with strength 1 edge matrix:
+2021-04-01 04:25:20.839196: I tensorflow/core/common_runtime/gpu/gpu_device.cc:990]      0 
+2021-04-01 04:25:20.839200: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1003] 0:   N 
+2021-04-01 04:25:20.839238: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 6310 MB memory) -> physical GPU (device: 0, name: GeForce RTX 2070, pci bus id: 0000:01:00.0, compute capability: 7.5)
+Restoring checkpoint
+WARNING:tensorflow:From /usr/local/lib/python3.6/dist-packages/tensorflow/python/training/saver.py:1266: checkpoint_exists (from tensorflow.python.training.checkpoint_management) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use standard file APIs to check for files with this prefix.
+INFO:tensorflow:Restoring parameters from /root/downloads/model.ckpt-1000000
+Running model
+  0%|                                                   | 0/933 [00:00<?, ?it/s]2021-04-01 04:25:22.068425: I tensorflow/stream_executor/dso_loader.cc:152] successfully opened CUDA library libcublas.so.10.0 locally
+Saving                                                                          
+
+In [3]: exit
+

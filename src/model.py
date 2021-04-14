@@ -190,6 +190,7 @@ def model(hparams, X, Y=None, past=None, scope='model', reuse=False):
             presents.append(present)
         results['present'] = tf.stack(presents, axis=1)
         h = norm(h, 'ln_f')
+        results['h'] = h # ADDED: I want to access intermediate representation.
 
         # Generative loss.  Do tokens <n predict token n?
         h_flat = tf.reshape(h, [batch*sequence, hparams.n_embd])
